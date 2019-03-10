@@ -123,4 +123,12 @@ tail -f MyPipeline/streaming-out.log
 # Restart Kafka brokers
 # ------------------------------------------------------------------------------
 
+# Restart Kafka broker killed previously
+
+# Check broker is back in ISR list
+kafka-topics.sh --zookeeper zookeeper01:2181 --describe --topic ratings
+
+# Topic:ratings	PartitionCount:1	ReplicationFactor:3	Configs:
+#	Topic: ratings	Partition: 0	Leader: 1	Replicas: 3,1,2	Isr: 3,1,2
+
 # Check everything is still ok

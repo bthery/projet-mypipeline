@@ -48,8 +48,8 @@ usage() {
 DOCKER_NET=mypipeline-net
 DOCKER_IMG=bthery/mypipeline-base2:latest
 
-DOCKERS="zookeeper01 kafka01 spark01 cassandra01 feeder streaming"
-#DOCKERS="zookeeper01 kafka01 kafka02 kafka03 spark01 cassandra01 feeder streaming"
+#DOCKERS="zookeeper01 kafka01 spark01 cassandra01 feeder streaming"
+DOCKERS="zookeeper01 kafka01 kafka02 kafka03 spark01 cassandra01 feeder streaming"
 
 
 print_banner() {
@@ -123,8 +123,8 @@ create_all_dockers() {
 #    create_docker zookeeper02 172.20.0.12
 #    create_docker zookeeper03 172.20.0.13
     create_docker kafka01 172.20.0.21
-#    create_docker kafka02 172.20.0.22
-#    create_docker kafka03 172.20.0.23
+    create_docker kafka02 172.20.0.22
+    create_docker kafka03 172.20.0.23
     create_docker spark01 172.20.0.31
     create_docker cassandra01 172.20.0.41
 #    create_docker cassandra02 172.20.0.42

@@ -238,9 +238,6 @@ fi
 if [ "$STAGE" == "deploy_all" ]; then
     create_all_dockers
     start_all_dockers
-    #copy_ssh_key
-    #stop_all_dockers
-    #start_all_dockers
 fi
 
 # 5. Se connecter aux differents docker et lancer les services comme decrit dans le TP

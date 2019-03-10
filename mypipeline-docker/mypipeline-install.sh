@@ -298,12 +298,20 @@ install_cassandra() {
     fi
 
     # Allow Cassandra to be run as root (for docker) : add -R option
-    sed -i "s@cassandra -f@cassandra -f -R@" ${MYPIPELINE_HOME}/my_scripts/mypipeline--start_cassandra.bash
+	if ! grep -q "cassandra -f -R" ${MYPIPELINE_HOME}/my_scripts/mypipeline--start_cassandra.bash; then
+		sed -i "s@cassandra -f@cassandra -f -R@" ${MYPIPELINE_HOME}/my_scripts/mypipeline--start_cassandra.bash
+	fi
 
     # Add cassandra address to cqlsh commands in cassandra script
-    sed -i "s@\(cqlsh -e .*\)@\1 ${CASSANDRA_HOST}@" ${MYPIPELINE_HOME}/my_scripts/mypipeline--delete_cassandra_tables.bash
-    sed -i "s@\(cqlsh -e .*\)@\1 ${CASSANDRA_HOST}@" ${MYPIPELINE_HOME}/my_scripts/mypipeline--create_cassandra_tables.bash
-    sed -i "s@\(cqlsh -e .*\)@\1 ${CASSANDRA_HOST}@" ${MYPIPELINE_HOME}/my_scripts/mypipeline--query_cassandra.bash
+	if ! grep -q ${CASSANDRA_HOST} ${MYPIPELINE_HOME}/my_scripts/mypipeline--delete_cassandra_tables.bash; then
+       sed -i "s@\(cqlsh -e .*\)@\1 ${CASSANDRA_HOST}@" ${MYPIPELINE_HOME}/my_scripts/mypipeline--delete_cassandra_tables.bash
+	fi
+	if ! grep -q ${CASSANDRA_HOST} ${MYPIPELINE_HOME}/my_scripts/mypipeline--create_cassandra_tables.bash; then
+       sed -i "s@\(cqlsh -e .*\)@\1 ${CASSANDRA_HOST}@" ${MYPIPELINE_HOME}/my_scripts/mypipeline--create_cassandra_tables.bash
+	fi
+	if ! grep -q ${CASSANDRA_HOST} ${MYPIPELINE_HOME}/my_scripts/mypipeline--query_cassandra.bash; then
+	   sed -i "s@\(cqlsh -e .*\)@\1 ${CASSANDRA_HOST}@" ${MYPIPELINE_HOME}/my_scripts/mypipeline--query_cassandra.bash
+	fi
 }
 
 start_cassandra() {

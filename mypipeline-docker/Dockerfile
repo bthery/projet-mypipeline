@@ -22,7 +22,7 @@ RUN echo root:password | chpasswd
 
 # Install tools and common dependencies
 RUN yum install -y epel-release
-RUN yum install -y iproute bash-completion screen vim wget bzip2 java-1.8.0-openjdk-headless
+RUN yum install -y iproute bash-completion screen vim wget bzip2 java-1.8.0-openjdk-headless nmap-ncat
 
 # Copy installation script
 COPY mypipeline-install.sh ${project_dir}

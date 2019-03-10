@@ -1,0 +1,33 @@
+#
+# Projet Architecture Distribuée : MyPipeline
+#
+# Benjamin THERY  <benjamin.thery@grenoble-inp.org> / <benjamin.thery@atos.net>
+# Dominique POPEK <dominique.popek@grenoble-inp.org> / <dominique.popek@atos.net>
+#
+# Host file:
+#
+# Ce fichier contient les adresses de tous les noeuds utilisés pour déployer
+# l'application mypipeline
+#
+# Copier son contenu dans le fichier /etc/hosts du systeme hote pour pouvoir
+# se connecter sur les differents noeuds.
+#
+#     cat mypipeline-hosts >> /etc/hosts
+#
+# Un fichier similaire existe dans chaque dockers pour qu'ils puissent
+# communiquer entre eux.
+#
+172.20.0.11	zookeeper01
+172.20.0.12	zookeeper02
+172.20.0.13	zookeeper03
+172.20.0.21	kafka01
+172.20.0.22	kafka02
+172.20.0.23	kafka03
+172.20.0.31	spark01
+172.20.0.41	cassandra01
+172.20.0.42	cassandra02
+172.20.0.43	cassandra03
+172.20.0.2	feeder
+172.20.0.3	streaming
+172.20.0.11	zookeeper01
+

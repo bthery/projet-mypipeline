@@ -12,7 +12,7 @@
 # Ce script:
 # - télécharge toutes les archives nécessaires au projet
 # - créé l'image docker de base a partir d'une image centos
-#     - cette image est contruite a partir du fichier Dockerfile
+#     - cette image est construite a partir du fichier Dockerfile
 # - créé le reseau docker sur lequel les dockers vont communiquer
 # - créé les differents dockers qui vont héberger les services avec leurs
 #   hostnames et adresses IP

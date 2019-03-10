@@ -90,7 +90,7 @@ cat spark-1.6.3-bin-hadoop2.6/logs/spark-root-org.apache.spark.deploy.worker.Wor
 
 # Start app
 ssh root@feeder
-cd Mypipeline/
+cd MyPipeline/
 mypipeline--start_feederapp.bash
 
 # Check app is sending message to Kafka topic: "Sending next rating: 1,120342,10"
@@ -116,3 +116,6 @@ cat MyPipeline/streaming-out.log
 # Or from outisde the VM, create a ssh tunnel to streaming container via the VM to see webui:
 #     ssh -v -N -L 4040:172.20.0.3:4040 ben@vmcentos
 #     firefox http://localhost:4040/
+
+# Check Cassandra tables are being filled
+mypipeline--query_cassandra.bash

@@ -109,14 +109,14 @@ kafka-topics.sh --zookeeper zookeeper01:2181 --describe --topic ratings
 
 # Check feeder can still send messages to Kafka topic
 ssh root@feeder
-cd Mypipeline/
-tail -f feeder-out.log
+tail -f Mypipeline/feeder-out.log
 
 # Check new messages can still be consumed from Kafka
 # Make sure to include a broker that is still up
 kafka-console-consumer.sh --bootstrap-server kafka03:9092,kafka01:9092 --topic ratings --from-beginning
 
 # Check streaming can still consume messages from Kafka
+ssh root@streaming
 tail -f MyPipeline/streaming-out.log
 
 # ------------------------------------------------------------------------------

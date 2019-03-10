@@ -1,0 +1,126 @@
+#
+# Projet Architecture Distribuée : MyPipeline
+#
+# Etapes pour rendre Kafka Fault Tolerant dans notre cluster de dockers
+#
+# Benjamin THERY  <benjamin.thery@grenoble-inp.org> / <benjamin.thery@atos.net>
+# Dominique POPEK <dominique.popek@grenoble-inp.org> / <dominique.popek@atos.net>
+#
+# Ce n'est pas un vrai script. Ne pas l'exécuter tel quel. Copier-coller les commandes.
+#
+
+
+# ------------------------------------------------------------------------------
+# Destroy existing dockers
+# ------------------------------------------------------------------------------
+./mypipeline-docker.sh stop_all
+./mypipeline-docker.sh destroy_all
+
+# ------------------------------------------------------------------------------
+# Re-deploy dockers with 2 additional Kafka brokers
+# ------------------------------------------------------------------------------
+
+# Edit ./mypipeline-docker.sh
+# - Update DOCKERS variable: make sure kafka02 and kafka03 are present
+# - Uncomment additional kafka brokers kafka02 and kafka03 in fucntion create_all_dockers()
+vi ./mypipeline-docker.sh
+
+# Create and start all the dockers
+./mypipeline-docker.sh deploy_all
+
+# ------------------------------------------------------------------------------
+# Update kafka02 and kafka03 configuration
+# ------------------------------------------------------------------------------
+
+# Set broker ID : change broker.id property in ${KAFKA_HOME}/config/server.properties
+ssh root@kafka02
+./mypipeline-install.sh $PWD kafka 2
+
+ssh root@kafka03
+./mypipeline-install.sh $PWD kafka 3
+
+# Modify the script creating the topic to specify the new replication factor of 3
+ssh root@kafka01
+sed -i "s@--replication-factor 1@--replication-factor 3@" ${MYPIPELINE_HOME}/my_scripts/mypipeline--create_kafka_topic.bash
+
+# All the node already knows the 3 brokers: the initial conguration already set
+# the brokers list to "kafka01:9092,kafka02:9092,kafka03:9092" where needed althgough
+# there was only on broker running
+
+# ------------------------------------------------------------------------------
+# Run the application
+# ------------------------------------------------------------------------------
+
+# Follow all the steps from mypipeline-start file
+# The only differences are for starting the Kafka brokers:
+
+# At the 'Start Kafka brokers' step repeat it for each broker
+ssh root@kafka01
+export KAFKA_HEAP_OPTS="-Xmx400M -Xms400M"
+mypipeline--start_kafka.bash
+
+ssh root@kafka02
+export KAFKA_HEAP_OPTS="-Xmx400M -Xms400M"
+mypipeline--start_kafka.bash
+
+ssh root@kafka03
+export KAFKA_HEAP_OPTS="-Xmx400M -Xms400M"
+mypipeline--start_kafka.bash
+
+# Check Kafka status
+# ZooKeeper stat shows Kafka server as 3 client brokers now
+echo stat | nc zookeeper01 2181
+
+# Zookeeper version: 3.4.13-2d71af4dbe22557fda74f9a9b4309b15a7487f03, built on 06/29/2018 04:05 GMT
+# Clients:
+# /172.20.0.22:55506[1](queued=0,recved=37,sent=37)
+# /172.20.0.23:40154[1](queued=0,recved=35,sent=35)
+# /172.20.0.21:54906[1](queued=0,recved=99,sent=103)
+# /172.20.0.11:46154[0](queued=0,recved=1,sent=0)
+
+
+# Last line shows the brokers ID we set: [1, 2, 3]
+zkCli.sh -server zookeeper01 ls /brokers/ids
+
+# Create the topic from kafka01 (where we change mypipeline--create_kafka_topic.bash)
+ssh root@kafka01
+mypipeline--create_kafka_topic.bash
+
+kafka-topics.sh --zookeeper zookeeper01:2181 --list
+
+# Display its leader, partitions and replication state
+kafka-topics.sh --zookeeper zookeeper01:2181 --describe --topic ratings
+
+# Topic:ratings	PartitionCount:1	ReplicationFactor:3	Configs:
+#	Topic: ratings	Partition: 0	Leader: 3	Replicas: 3,1,2	Isr: 3,1,2
+
+
+# ------------------------------------------------------------------------------
+# Cause an error : Kill Kafka leader
+# ------------------------------------------------------------------------------
+
+# Kill Kafka leader process
+
+# Check the leader has changed in ZooKeeper
+kafka-topics.sh --zookeeper zookeeper01:2181 --describe --topic ratings
+
+# Topic:ratings	PartitionCount:1	ReplicationFactor:3	Configs:
+#	Topic: ratings	Partition: 0	Leader: 1	Replicas: 3,1,2	Isr: 1,2
+
+# Check feeder can still send messages to Kafka topic
+ssh root@feeder
+cd Mypipeline/
+tail -f feeder-out.log
+
+# Check new messages can still be consumed from Kafka
+# Make sure to include a broker that is still up
+kafka-console-consumer.sh --bootstrap-server kafka03:9092,kafka01:9092 --topic ratings --from-beginning
+
+# Check streaming can still consume messages from Kafka
+tail -f MyPipeline/streaming-out.log
+
+# ------------------------------------------------------------------------------
+# Restart Kafka brokers
+# ------------------------------------------------------------------------------
+
+# Check everything is still ok

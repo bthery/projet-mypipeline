@@ -16,6 +16,7 @@ RUN ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N ''
 RUN ssh-keygen -t dsa -f /etc/ssh/ssh_host_dsa_key -N ''
 RUN sed -i "s/#PermitRootLogin yes/PermitRootLogin yes/" /etc/ssh/sshd_config
 RUN sed -i "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/" /etc/ssh/sshd_config
+RUN sed -i "s/#UseDNS yes/UseDNS no/" /etc/ssh/sshd_config
 RUN echo root:password | chpasswd
 #EXPOSE 22
 #CMD ["/usr/sbin/sshd", "-D"]

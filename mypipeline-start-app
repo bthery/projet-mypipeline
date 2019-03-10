@@ -1,0 +1,118 @@
+#
+# Projet Architecture Distribuée : MyPipeline
+#
+# Cheat sheet pour démarrer MyPipeline pas-à-pas
+# Résumé de https://msbd-distsys.gitlab.io/lab2.html#toc_14
+#
+# Benjamin THERY  <benjamin.thery@grenoble-inp.org> / <benjamin.thery@atos.net>
+# Dominique POPEK <dominique.popek@grenoble-inp.org> / <dominique.popek@atos.net>
+#
+# Ce n'est pas un vrai script. Ne pas l'exécuter tel quel. Copier-coller les commandes.
+#
+
+# ------------------------------------------------------------------------------
+# Start Zookeeper servers
+# ------------------------------------------------------------------------------
+ssh root@zookeeper01
+mypipeline--start_zookeeper.bash
+
+# Check ZooKeeper status (requires nmap-ncat installed)
+echo stat | nc zookeeper01 2181
+echo mntr | nc zookeeper01 2181
+echo isro | nc zookeeper01 2181
+
+# ------------------------------------------------------------------------------
+# Start Kafka brokers
+# ------------------------------------------------------------------------------
+
+# Start broker
+ssh root@kafka01
+export KAFKA_HEAP_OPTS="-Xmx400M -Xms400M"
+mypipeline--start_kafka.bash
+
+# Check Kafka status
+# ZooKeeper stat shows Kafka server as client now
+echo stat | nc zookeeper01 2181
+
+# Last line shows the brokers ID we set: [1]
+zkCli.sh -server zookeeper01 ls /brokers/ids
+
+# Create topic 'ratings' (from any node) and check it is created
+ssh root@kafka01
+mypipeline--create_kafka_topic.bash
+kafka-topics.sh --zookeeper zookeeper01:2181 --list
+
+# Display its leader, partitions and replication state
+kafka-topics.sh --zookeeper zookeeper01:2181 --describe --topic ratings
+
+# ------------------------------------------------------------------------------
+# Start Cassandra server and create table
+# ------------------------------------------------------------------------------
+
+# Start cassandra and check status
+ssh root@cassandra01
+mypipeline--start_cassandra.bash
+nodetool status
+nodetool info
+
+# Create keyspace and table and check status
+ssh root@cassandra01
+mypipeline--delete_cassandra_tables.bash
+mypipeline--create_cassandra_tables.bash
+mypipeline--query_cassandra.bash
+nodetool tablestats pipeline
+
+# ------------------------------------------------------------------------------
+# Start Spark Master
+# ------------------------------------------------------------------------------
+
+# Start Master
+ssh root@spark01
+mypipeline--start_spark_master.bash
+
+# Check logs: "I have been elected leader! New state: ALIVE"
+cat spark-1.6.3-bin-hadoop2.6/logs/spark-root-org.apache.spark.deploy.master.Master-1-spark01.out
+
+# ------------------------------------------------------------------------------
+# Start Spark Worker
+# ------------------------------------------------------------------------------
+
+# Start worker
+ssh root@spark01
+mypipeline--start_spark_worker.bash
+
+# Check logs: "Successfully registered with master spark://spark01:7077"
+cat spark-1.6.3-bin-hadoop2.6/logs/spark-root-org.apache.spark.deploy.worker.Worker-1-spark01.out
+
+# ------------------------------------------------------------------------------
+# Start feeder application
+# ------------------------------------------------------------------------------
+
+# Start app
+ssh root@feeder
+cd Mypipeline/
+mypipeline--start_feederapp.bash
+
+# Check app is sending message to Kafka topic: "Sending next rating: 1,120342,10"
+cat feeder-out.log
+kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list kafka01:9092 --topic ratings --time -1
+
+# Can start a consumer to see topic content
+kafka-console-consumer.sh --bootstrap-server kafka01:9092 --topic ratings --from-beginning
+
+# ------------------------------------------------------------------------------
+# Start streaming application
+# ------------------------------------------------------------------------------
+
+# Start app
+ssh root@streaming
+mypipeline--start_spark_streaming_ratingsapp.bash
+
+# Check it is producing data
+ssh root@streaming
+cat MyPipeline/streaming-out.log
+
+# From the Centos VM connect to webui: firefox http://172.20.0.3:4040/
+# Or from outisde the VM, create a ssh tunnel to streaming container via the VM to see webui:
+#     ssh -v -N -L 4040:172.20.0.3:4040 ben@vmcentos
+#     firefox http://localhost:4040/

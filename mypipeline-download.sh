@@ -66,6 +66,13 @@ download_all() {
 # Main
 #
 
+# Check wget is installed
+if ! type wget >& /dev/null; then
+	echo "ERROR: wget must be installed to download the archives"
+	echo "       Run 'yum install wget' to install it"
+	exit 1
+fi
+
 if [ "$DESTDIR" != "" ]; then
 	cd $DESTDIR
 fi

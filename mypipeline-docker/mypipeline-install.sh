@@ -425,6 +425,13 @@ if [ -z ${ROOT_DIR} ] || [ -z ${NODE_TYPE} ]; then
     exit 1
 fi
 
+# Check wget is installed
+if ! type wget >& /dev/null; then
+        echo "ERROR: wget must be installed to download the archives"
+        echo "       Run 'yum install wget' to install it"
+        exit 1
+fi
+
 # Set proxy if needed
 if [ "$PROXY" != "" ]; then
     export http_proxy=$PROXY

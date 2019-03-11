@@ -1,4 +1,4 @@
-Projet Mypipeline
+Projet MyPipeline
 ==================
 
 MS Big Data 2018-2019 : Projet Systèmes Distribuées

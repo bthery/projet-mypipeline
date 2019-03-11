@@ -25,7 +25,7 @@ Sources
     * Description file used to build the base docker image for the application nodes
 
 * [mypipeline-docker/mypipeline-install.sh](mypipeline-docker/mypipeline-install.sh)
-    * Script for configuring all the services
+    * Script for configuring all the services. This is the script that will configure every components used by the application so they can communicate with each other in the cluster.
 
 *  [mypipeline-docker/switch-proxy.sh](mypipeline-docker/switch-proxy.sh)
     * Helper script to switch web proxy on or off if needed

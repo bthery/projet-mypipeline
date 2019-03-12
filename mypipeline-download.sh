@@ -69,13 +69,13 @@ download_all() {
 
 # Check wget is installed
 if ! type wget >& /dev/null; then
-	echo "ERROR: wget must be installed to download the archives"
-	echo "       Run 'yum install wget' to install it"
-	exit 1
+    echo "ERROR: wget must be installed to download the archives"
+    echo "       Run 'yum install wget' to install it"
+    exit 1
 fi
 
 if [ "$DESTDIR" != "" ]; then
-	cd $DESTDIR
+    cd $DESTDIR
 fi
 
 print_banner "Download archives to $PWD"

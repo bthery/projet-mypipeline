@@ -33,17 +33,17 @@ usage() {
     echo "  deploy_all:  create and start all mypipeline dockers"
     echo "  stop_all:    stop all mypipeline dockers"
     echo "  destroy_all: remove all mypipeline dockers"
-	echo ""
-	echo "  To create image and docker for mypipeline application do:"
-	echo ""
-	echo "    $0 init_image"
-	echo "    cat mypipeline-hosts >> /etc/hosts"
-	echo "    ssh root@zookeeper01"
-	echo "        cd /home/projet-mypipeline"
-	echo "        ./mypipeline-install.sh $PWD all 1"
-	echo "        exit"
-	echo "    $0 deploy_all"
-	echo ""
+    echo ""
+    echo "  To create image and docker for mypipeline application do:"
+    echo ""
+    echo "    $0 init_image"
+    echo "    cat mypipeline-hosts >> /etc/hosts"
+    echo "    ssh root@zookeeper01"
+    echo "        cd /home/projet-mypipeline"
+    echo "        ./mypipeline-install.sh $PWD all 1"
+    echo "        exit"
+    echo "    $0 deploy_all"
+    echo ""
 }
 
 DOCKER_NET=mypipeline-net
@@ -168,10 +168,10 @@ if [ "$STAGE" == "" ]; then
     usage
     exit 1
 elif [ "$STAGE" == "init_image" ]; then
-	# Download all the archives
-	./mypipeline-download.sh mypipeline-docker
+    # Download all the archives
+    ./mypipeline-download.sh mypipeline-docker
 
-	# Build base image
+    # Build base image
     if ! docker image inspect $DOCKER_IMG >& /dev/null; then
         print_banner "Build docker image $DOCKER_IMG"
         docker build --tag=$DOCKER_IMG mypipeline-docker/

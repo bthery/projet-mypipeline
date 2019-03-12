@@ -3,6 +3,10 @@ Projet MyPipeline
 
 MS Big Data 2018-2019 : Projet Systèmes Distribuées
 
+    Benjamin THERY
+    Dominique POPEK
+    Thibault MAILFAIT
+
 Sources
 -------
 

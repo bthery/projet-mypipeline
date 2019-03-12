@@ -6,6 +6,7 @@
 #
 # Benjamin THERY  <benjamin.thery@grenoble-inp.org> / <benjamin.thery@atos.net>
 # Dominique POPEK <dominique.popek@grenoble-inp.org> / <dominique.popek@atos.net>
+# Thibault MAILFAIT <thibault.mailfait@grenoble-inp.org>
 #
 # Ce n'est pas un vrai script. Ne pas l'exécuter tel quel. Copier-coller les commandes.
 #

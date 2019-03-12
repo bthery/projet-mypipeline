@@ -5,6 +5,7 @@
 #
 # Benjamin THERY  <benjamin.thery@grenoble-inp.org> / <benjamin.thery@atos.net>
 # Dominique POPEK <dominique.popek@grenoble-inp.org> / <dominique.popek@atos.net>
+# Thibault MAILFAIT <thibault.mailfait@grenoble-inp.org>
 #
 # Script de deploiement:
 #

@@ -221,7 +221,7 @@ fi
 #
 # exit
 # docker stop zookeeper01
-# docker commit -m "Configure all services" -a "<author name>" <docker_id> bthery/mypipeline-base:latest
+# docker commit -m "Configure all services" -a "<author name>" <docker_id> bthery/mypipeline-base2:latest
 if [ "$STAGE" == "deploy_all" ]; then
     print_banner "Commit image changes"
     docker stop zookeeper01

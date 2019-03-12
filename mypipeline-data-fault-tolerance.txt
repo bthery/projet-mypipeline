@@ -1,0 +1,317 @@
+----------------------------------------------------------------
+Préliminaire : Clone de la VM 
+----------------------------------------------------------------
+Dans l'interface de VirtualBox :
+	clone de smack
+		en mode intégral
+		et options préserver les disques ET les UUID
+
+Test du clonage  :
+	ok sauf l' @ qui evolue : 	
+	ssh dpk@192.168.56.102 
+
+	CONTAINER ID        IMAGE               COMMAND               CREATED             STATUS                  PORTS               NAMES
+ee7519e231f5        23caa8a88e75        "/usr/sbin/sshd -D"   8 hours ago         Up Less than a second                       streaming
+6bd4ec4995c8        23caa8a88e75        "/usr/sbin/sshd -D"   8 hours ago         Up Less than a second                       feeder
+518db2e2936a        23caa8a88e75        "/usr/sbin/sshd -D"   8 hours ago         Up Less than a second                       cassandra01
+465469f6666e        23caa8a88e75        "/usr/sbin/sshd -D"   8 hours ago         Up 1 second                                 spark01
+53cfe01334e0        23caa8a88e75        "/usr/sbin/sshd -D"   8 hours ago         Up 1 second                                 kafka03
+a9b06140253b        23caa8a88e75        "/usr/sbin/sshd -D"   8 hours ago         Up 2 seconds                                kafka02
+6a142c9132b6        23caa8a88e75        "/usr/sbin/sshd -D"   8 hours ago         Up 3 seconds                                kafka01
+e791dce38fae        fe676db8d52f        "/usr/sbin/sshd -D"   9 hours ago         Up 3 seconds                                zookeeper01
+
+les container id sont identiques : OK
+
+-----------------------------------------------------
+A) Création des dockers cassandra02 & 03
+-----------------------------------------------------
+1) evol du script de déploiement cassandra :	
+En mode delta : 
+
+	kill feeder in feeder docker
+	kill streamer in streamer docker
+	kill worker in spark worker docker
+	shutdown cassandra server in cassandra01 docker
+		nodetool status
+		ps auwx
+		kill <PID>
+
+from VM :
+	vi mypipeline-docker.sh 
+
+	edit DOCKERS var to append cassandra02 & 03: 
+		DOCKERS="cassandra02 cassandra03"
+		#DOCKERS="zookeeper01 kafka01 kafka02 kafka03 spark01 cassandra01 feeder streaming"
+
+	edit  (comment all dockers except cassandra02 & 03 )
+		create_all_dockers() {
+		#   create_docker zookeeper01 172.20.0.11
+		#    create_docker zookeeper02 172.20.0.12
+		#    create_docker zookeeper03 172.20.0.13
+		#    create_docker kafka01 172.20.0.21
+		#    create_docker kafka02 172.20.0.22
+		#    create_docker kafka03 172.20.0.23
+		#    create_docker spark01 172.20.0.31
+		#    create_docker cassandra01 172.20.0.41
+		    create_docker cassandra02 172.20.0.42
+		    create_docker cassandra03 172.20.0.43
+		#    create_docker feeder 172.20.0.2
+		#    create_docker streaming 172.20.0.3
+		}
+
+2) execution du script de déploiement
+	./mypipeline-docker.sh deploy_all
+
+3) Vérification : 
+	expected : 
+			CONTAINER ID        IMAGE                            COMMAND               CREATED             STATUS                  PORTS               NAMES
+		a738e29bff55        bthery/mypipeline-base2:latest   "/usr/sbin/sshd -D"   4 seconds ago       Up Less than a second                       cassandra03
+		2030ac2155fd        bthery/mypipeline-base2:latest   "/usr/sbin/sshd -D"   5 seconds ago       Up Less than a second                       cassandra02
+		ee7519e231f5        23caa8a88e75                     "/usr/sbin/sshd -D"   32 hours ago        Up 23 hours                                 streaming
+		6bd4ec4995c8        23caa8a88e75                     "/usr/sbin/sshd -D"   32 hours ago        Up 23 hours                                 feeder
+		518db2e2936a        23caa8a88e75                     "/usr/sbin/sshd -D"   32 hours ago        Up 23 hours                                 cassandra01
+		465469f6666e        23caa8a88e75                     "/usr/sbin/sshd -D"   32 hours ago        Up 23 hours                                 spark01
+		53cfe01334e0        23caa8a88e75                     "/usr/sbin/sshd -D"   32 hours ago        Up 23 hours                                 kafka03
+		a9b06140253b        23caa8a88e75                     "/usr/sbin/sshd -D"   32 hours ago        Up 23 hours                                 kafka02
+		6a142c9132b6        23caa8a88e75                     "/usr/sbin/sshd -D"   32 hours ago        Up 23 hours                                 kafka01
+
+4) restart de zookeeper (car éteint par le script de déploiement): 
+		
+	From VM : 
+		docker start zookeeper01
+		ssh root@zookeeper01
+		mypipeline--start_zookeeper.bash
+
+	vérifier que kafka01 kafka02 kafka03 have automatically reconnected to zookeeper01 :
+		zkCli.sh -server zookeeper01 ls /brokers/ids
+
+
+----------------------------------------------------------
+B) Start cassandra 02 & 03
+----------------------------------------------------------
+1) Snapshot :	
+	From cassandra01 : 	
+		[root@cassandra01 projet-mypipeline]# nodetool status
+		Datacenter: datacenter1
+		=======================
+		Status=Up/Down
+		|/ State=Normal/Leaving/Joining/Moving
+		--  Address      Load       Tokens       Owns (effective)  Host ID                               Rack
+		UN  172.20.0.41  1.46 MiB   256          100.0%            e085e0a0-aa30-4592-9ad4-4e5b3a97f3a6  rack1
+	
+depuis 	bin/ : 
+	cd ${CASSANDRA_HOME}/bin/
+	cqlsh 172.20.0.41 9042
+	cqlsh> USE pipeline;
+	cqlsh:pipeline> select count(*) from real_time_ratings
+		count
+		--------
+		118473
+-----------------------------------------------------------------------
+2) Prepare 
+-----------------------------------------------------------------------
+3)kill cassandra01 : 
+	shutdown cassandra server in cassandra01 docker
+		nodetool status
+		ps auwx
+		kill <PID>
+
+4)	Clean system data : 
+		cd ${CASSANDRA_HOME}/data
+		rm -rf system/*
+
+5)	Modify yaml : 
+		cd ${CASSANDRA_HOME}/conf/
+		vi cassandra.yaml
+			edit or check : 
+				cluster_name: 'Test Cluster' 
+				num_tokens: recommended value: 256
+				partitioner: org.apache.cassandra.dht.Murmur3Partitioner
+				seed_provider:
+				- class_name: org.apache.cassandra.locator.SimpleSeedProvider
+					- seeds: "cassandra01" 
+				listen_address: cassandra01  
+				rpc_address: cassandra01
+				endpoint_snitch: SimpleSnitch 
+				
+			Append file with
+				auto_bootstrap: false
+
+6) 	On cassandra02 : 
+	repeat steps above
+		edit : 	
+			seeds: "cassandra01"
+			listen_address: cassandra02 
+			rpc_address: cassandra02
+			auto_bootstrap: false
+
+7)	On cassandra03 :
+	repeat steps above 
+		edit : 	
+			seeds: "cassandra01"
+			listen_address: cassandra03 
+			rpc_address: cassandra03
+			auto_bootstrap: false
+
+8) 	start cassandra 02 & 03 : 
+		cd /home/projet-mypipeline/MyPipeline/my_scripts/
+		mypipeline--start_cassandra.bash
+----------------------------------------------------------------------------------
+9) 	RESULT : HANDSHAKE expected
+----------------------------------------------------------------------------------
+On cassandra01 : 
+	INFO  [GossipStage:1] 2019-03-12 14:48:32,302 OutboundTcpConnection.java:108 - OutboundTcpConnection using coalescing strategy DISABLED
+	INFO  [HANDSHAKE-/172.20.0.42] 2019-03-12 14:48:32,361 OutboundTcpConnection.java:560 - Handshaking version with /172.20.0.42
+	INFO  [GossipStage:1] 2019-03-12 14:48:34,996 Gossiper.java:1067 - Node /172.20.0.42 is now part of the cluster
+	INFO  [RequestResponseStage-1] 2019-03-12 14:48:35,007 Gossiper.java:1031 - InetAddress /172.20.0.42 is now UP
+	WARN  [GossipTasks:1] 2019-03-12 14:48:35,643 FailureDetector.java:288 - Not marking nodes down due to local pause of 485385837537 > 5000000000
+	INFO  [HANDSHAKE-/172.20.0.42] 2019-03-12 14:48:35,671 OutboundTcpConnection.java:560 - Handshaking version with /172.20.0.42
+	INFO  [HANDSHAKE-/172.20.0.43] 2019-03-12 15:01:53,433 OutboundTcpConnection.java:560 - Handshaking version with /172.20.0.43
+	INFO  [GossipStage:1] 2019-03-12 15:01:56,348 Gossiper.java:1067 - Node /172.20.0.43 is now part of the cluster
+	INFO  [RequestResponseStage-1] 2019-03-12 15:01:56,368 Gossiper.java:1031 - InetAddress /172.20.0.43 is now UP
+	INFO  [HANDSHAKE-/172.20.0.43] 2019-03-12 15:01:58,287 OutboundTcpConnection.java:560 - Handshaking version with /172.20.0.43
+
+With nodetool status : 
+when cassandra02 is up : 
+	Status=Up/Down
+	|/ State=Normal/Leaving/Joining/Moving
+	--  Address      Load       Tokens       Owns (effective)  Host ID                               Rack
+	UN  172.20.0.41  1.34 MiB   256          48.3%             870f6d17-390d-4fa8-8c87-69e49a8004ed  rack1
+	UN  172.20.0.42  106.95 KiB  256          51.7%             a8c2989c-51b6-43c1-8d0d-869e9da6bc53  rack1
+
+then when cassandra03 is up : 	
+	Status=Up/Down
+	|/ State=Normal/Leaving/Joining/Moving
+	--  Address      Load       Tokens       Owns (effective)  Host ID                               Rack
+	UN  172.20.0.41  1.36 MiB   256          29.6%             870f6d17-390d-4fa8-8c87-69e49a8004ed  rack1
+	UN  172.20.0.42  70.2 KiB   256          36.5%             a8c2989c-51b6-43c1-8d0d-869e9da6bc53  rack1
+	UN  172.20.0.43  88.1 KiB   256          33.9%             7f4b6652-3dd2-4264-85bb-33659dfc0f28  rack1
+
+-----------------------------------------------
+C) Introduce replication factor of 3 on 3 nodes :
+-----------------------------------------------
+	
+1) Snapshot on cassandra01 :
+	cd ${CASSANDRA_HOME}/bin/ 
+	cqlsh 172.20.0.41 9042
+[As keyspace table and data where not dropped ]
+
+	cqlsh> use pipeline ;
+	cqlsh:pipeline> select count(*) from real_time_ratings ;
+
+		 count
+		-------
+		 41687
+
+	Meaning Cassandra automatically Distributed Data between the 3 available nodes
+
+2) Add key spaces and create table : On cassandra01 : 
+
+	cqlsh:pipeline> ALTER KEYSPACE pipeline WITH REPLICATION = { 'class': 'SimpleStrategy',  'replication_factor':3};
+	cqlsh:pipeline> select count(*) from real_time_ratings ;
+
+		 count
+		-------
+		     0
+
+-----------------------------------------------------
+Reouverture du Spark Worker,du Streamer,du feeder 
+------------------------------------------------------
+from feeder docker : (extract)
+	9,57433,3
+	9,57507,2
+	9,57578,6
+	9,57594,3
+	9,57610,10
+	9,57633,10
+	9,57724,10
+	9,57774,1
+	9,57828,10
+	9,57912,3
+	9,57991,3
+	9,57994,10
+	9,58081,1
+	9,58152,2
+	9,58237,6
+	9,58303,6
+	9,58314,6
+	9,58386,10
+Stop feeder 
+===========================================================================
+check cassandra01
+===========================================================================
+select count(*) from real_time_ratings ;
+
+ count
+-------
+  1035
+
+========================================================
+Kill Cassandra 02 : 
+========================================================
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address      Load       Tokens       Owns (effective)  Host ID                               Rack
+UN  172.20.0.41  345.3 KiB  256          100.0%            870f6d17-390d-4fa8-8c87-69e49a8004ed  rack1
+DN  172.20.0.42  362.47 KiB  256          100.0%            a8c2989c-51b6-43c1-8d0d-869e9da6bc53  rack1
+UN  172.20.0.43  368.49 KiB  256          100.0%            7f4b6652-3dd2-4264-85bb-33659dfc0f28  rack1
+
+==========================================================
+restart feeder :
+==========================================================
+ count
+-------
+  2212
+
+========================================================================
+After cassandra 02 restart : 
+========================================================================
+On cassandra01 monitor : observe handshake
+
+INFO  [HANDSHAKE-/172.20.0.42] 2019-03-12 17:03:32,303 OutboundTcpConnection.java:560 - Handshaking version with /172.20.0.42
+INFO  [HANDSHAKE-/172.20.0.42] 2019-03-12 17:03:34,012 OutboundTcpConnection.java:560 - Handshaking version with /172.20.0.42
+INFO  [GossipStage:1] 2019-03-12 17:03:34,505 Gossiper.java:1065 - Node /172.20.0.42 has restarted, now UP
+INFO  [GossipStage:1] 2019-03-12 17:03:34,506 TokenMetadata.java:479 - Updating topology for /172.20.0.42
+INFO  [GossipStage:1] 2019-03-12 17:03:34,506 TokenMetadata.java:479 - Updating topology for /172.20.0.42
+INFO  [RequestResponseStage-4] 2019-03-12 17:03:34,526 Gossiper.java:1031 - InetAddress /172.20.0.42 is now UP
+INFO  [GossipStage:1] 2019-03-12 17:03:34,685 StorageService.java:2268 - Node /172.20.0.42 state jump to NORMAL
+INFO  [HintsDispatcher:3] 2019-03-12 17:03:51,871 HintsStore.java:126 - Deleted hint file a8c2989c-51b6-43c1-8d0d-869e9da6bc53-1552409650777-1.hints
+INFO  [HintsDispatcher:3] 2019-03-12 17:03:51,872 HintsDispatchExecutor.java:282 - Finished hinted handoff of file a8c2989c-51b6-43c1-8d0d-869e9da6bc53-1552409650777-1.hints to endpoint /172.20.0.42: a8c2989c-51b6-43c1-8d0d-869e9da6bc53
+
+
+=================================================================
+stop feeder 
+=================================================================
+
+ count
+-------
+  3352
+
+nodetool status :
+	Status=Up/Down
+	|/ State=Normal/Leaving/Joining/Moving
+	--  Address      Load       Tokens       Owns (effective)  Host ID                               Rack
+	UN  172.20.0.41  345.3 KiB  256          100.0%            870f6d17-390d-4fa8-8c87-69e49a8004ed  rack1
+	UN  172.20.0.42  263.87 KiB  256          100.0%            a8c2989c-51b6-43c1-8d0d-869e9da6bc53  rack1
+	UN  172.20.0.43  368.49 KiB  256          100.0%            7f4b6652-3dd2-4264-85bb-33659dfc0f28  rack1
+
+====================================================================
+after a long time (feeder stil stopped)
+====================================================================
+
+ count
+-------
+  3352
+
+nodetool status :
+
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address      Load       Tokens       Owns (effective)  Host ID                               Rack
+UN  172.20.0.41  259.16 KiB  256          100.0%            870f6d17-390d-4fa8-8c87-69e49a8004ed  rack1
+UN  172.20.0.42  248.11 KiB  256          100.0%            a8c2989c-51b6-43c1-8d0d-869e9da6bc53  rack1
+UN  172.20.0.43  282.92 KiB  256          100.0%            7f4b6652-3dd2-4264-85bb-33659dfc0f28  rack1
+
+
+==================================================================
+
